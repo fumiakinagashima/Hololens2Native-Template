@@ -4,3 +4,16 @@ A template for Microsoft HoloLens2 developer who want to develop without game en
 Using OpenXR and DirextX11.
 
 This source code minimalize and usually CPP coding based on [BasicXrApp](https://github.com/microsoft/OpenXR-MixedReality/tree/main/samples/BasicXrApp).
+
+
+## Technical set.
+- Visual Studio 2022
+- C++
+- DirectX 11 and HLSL
+- OpenXR
+- HoloLens2
+
+
+## Branch
+- main : Minimal program as base template.
+- show-objects: Only appear 3D objects.
