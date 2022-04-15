@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "XrProgram.h"
 #include "DxProgram.h"
+#include "Cube.h"
 
 int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 
@@ -21,6 +22,8 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 	xr.CreateSpace();
 	xr.CreateSwapchain(&dx);
 
+	Cube cube{};
+	dx.SetCube(&cube);
 	dx.CompileShader();
 
 	while (xr.PollEvent())

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cube.h"
+
 struct swapchain_surfdata_t {
 	ID3D11DepthStencilView* depth_view;
 	ID3D11RenderTargetView* target_view;
@@ -43,6 +45,10 @@ public:
 	ID3D11Device* Device();
 	ID3D11DeviceContext* DeviceContext();
 
+	// TODO change to abstruct objects.
+	Cube* GetCube();
+	void SetCube(Cube* cube);
+
 private:
 	ComPtr<ID3D11Device> m_device;
 	ComPtr<ID3D11DeviceContext> m_context;
@@ -52,5 +58,7 @@ private:
 	ComPtr<ID3D11Buffer> m_vertexBuffer;
 	ComPtr<ID3D11Buffer> m_indexBuffer;
 	ComPtr<ID3D11Buffer> m_constantBuffer;
+
+	Cube* m_cube;
 
 };

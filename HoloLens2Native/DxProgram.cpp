@@ -107,11 +107,12 @@ void DxProgram::CompileShader()
 		vsBlob->GetBufferPointer(),
 		vsBlob->GetBufferSize(),
 		&m_shaderLayout);
-
-	// TODO Create vertex buffer and index buffer.
+	
+	m_device->CreateBuffer(m_cube->VertexBufferDesc(), m_cube->VertexBufferData(), m_vertexBuffer.GetAddressOf());
+	m_device->CreateBuffer(m_cube->IndexBufferDesc(), m_cube->IndexBufferData(), m_indexBuffer.GetAddressOf());
 
 	CD3D11_BUFFER_DESC constBufferDesc(sizeof(transform_buffer_t), D3D11_BIND_CONSTANT_BUFFER);
-	m_device->CreateBuffer(&constBufferDesc, nullptr, &m_constantBuffer);
+	m_device->CreateBuffer(&constBufferDesc, nullptr, m_constantBuffer.GetAddressOf());
 
 }
 
@@ -136,10 +137,10 @@ void DxProgram::Render(
 
 	float clipNear = 0.05f;
 	float clipFar = 100.0f;
-	const float left = clipNear * tanf(layerView.fov.angleLeft);
-	const float right = clipNear * tanf(layerView.fov.angleRight);
-	const float down = clipNear * tanf(layerView.fov.angleDown);
-	const float up = clipNear * tanf(layerView.fov.angleUp);
+	float left = clipNear * tanf(layerView.fov.angleLeft);
+	float right = clipNear * tanf(layerView.fov.angleRight);
+	float down = clipNear * tanf(layerView.fov.angleDown);
+	float up = clipNear * tanf(layerView.fov.angleUp);
 
 	XMMATRIX matProjection = XMMatrixPerspectiveOffCenterRH(left, right, down, up, clipNear, clipFar);
 	XMMATRIX matView = XMMatrixInverse(nullptr, XMMatrixAffineTransformation(
@@ -148,13 +149,13 @@ void DxProgram::Render(
 		XMLoadFloat4((XMFLOAT4*)&layerView.pose.orientation),
 		XMLoadFloat3((XMFLOAT3*)&layerView.pose.position)));
 
-	m_context->VSGetConstantBuffers(0, 1, &m_constantBuffer);
+	m_context->VSSetConstantBuffers(0, 1, m_constantBuffer.GetAddressOf());
 	m_context->VSSetShader(m_vertexShader.Get(), nullptr, 0);
 	m_context->PSSetShader(m_pixelShader.Get(), nullptr, 0);
 
 	UINT strides[] = { sizeof(float) * 6 };
 	UINT offsets[] = { 0 };
-	m_context->IASetVertexBuffers(0, 1, &m_vertexBuffer, strides, offsets);
+	m_context->IASetVertexBuffers(0, 1, m_vertexBuffer.GetAddressOf(), strides, offsets);
 	m_context->IASetIndexBuffer(m_indexBuffer.Get(), DXGI_FORMAT_R16_UINT, 0);
 	m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_context->IASetInputLayout(m_shaderLayout.Get());
@@ -162,7 +163,16 @@ void DxProgram::Render(
 	transform_buffer_t transformBuffer;
 	XMStoreFloat4x4(&transformBuffer.viewproj, XMMatrixTranspose(matView * matProjection));
 
-	// TODO Drwa own Objects.
+	// Drwa own Objects.
+	XMMATRIX matrixModel = XMMatrixAffineTransformation(
+		DirectX::g_XMOne * 0.05f,
+		DirectX::g_XMZero,
+		XMLoadFloat4(m_cube->Orientation()),
+		XMLoadFloat3(m_cube->Position()));
+
+	XMStoreFloat4x4(&transformBuffer.world, XMMatrixTranspose(matrixModel));
+	m_context->UpdateSubresource(m_constantBuffer.Get(), 0, nullptr, &transformBuffer, 0, 0);
+	m_context->DrawIndexed(m_cube->CountIndex(), 0, 0);
 }
 
 void DxProgram::Terminate()
@@ -172,11 +182,21 @@ void DxProgram::Terminate()
 }
 
 ID3D11Device* DxProgram::Device()
-{
+{ 
 	return m_device.Get();
 }
 
 ID3D11DeviceContext* DxProgram::DeviceContext()
 {
 	return m_context.Get();
+}
+
+Cube* DxProgram::GetCube()
+{
+	return m_cube;
+}
+
+void DxProgram::SetCube(Cube* cube)
+{
+	m_cube = cube;
 }

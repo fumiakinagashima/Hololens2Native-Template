@@ -14,11 +14,13 @@
     <ClCompile Include="App.cpp" />
     <ClCompile Include="XrProgram.cpp" />
     <ClCompile Include="DxProgram.cpp" />
+    <ClCompile Include="Cube.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="XrProgram.h" />
     <ClInclude Include="DxProgram.h" />
+    <ClInclude Include="Cube.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\LockScreenLogo.scale-200.png">
