@@ -7,6 +7,7 @@ XrProgram::XrProgram() :
 	m_sessionState(XR_SESSION_STATE_UNKNOWN),
 	m_space(nullptr),
 	m_systemId(XR_NULL_SYSTEM_ID),
+	m_input({}),
 	ext_xrGetD3D11GraphicsRequirementsKHR(nullptr)
 {}
 
@@ -127,7 +128,53 @@ void XrProgram::CreateSwapchain(DxProgram* dx)
 
 void XrProgram::MakeActions()
 {
-	// TODO: Impliment your actions.
+	XrActionSetCreateInfo actionsetInfo = { XR_TYPE_ACTION_SET_CREATE_INFO };
+	strcpy_s(actionsetInfo.actionSetName, "gameplay");
+	strcpy_s(actionsetInfo.localizedActionSetName, "Gameplay");
+	xrCreateActionSet(m_instance, &actionsetInfo, &m_input.actionSet);
+	xrStringToPath(m_instance, "/user/hand/left", &m_input.handSubactionPath[0]);
+	xrStringToPath(m_instance, "/user/hand/right", &m_input.handSubactionPath[1]);
+
+	XrActionCreateInfo actionInfo = { XR_TYPE_ACTION_CREATE_INFO };
+	actionInfo.countSubactionPaths = _countof(m_input.handSubactionPath);
+	actionInfo.subactionPaths = m_input.handSubactionPath;
+
+	// hand pose
+	actionInfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
+	strcpy_s(actionInfo.actionName, "hand_pose");
+	strcpy_s(actionInfo.localizedActionName, "Hand Pose");
+	xrCreateAction(m_input.actionSet, &actionInfo, &m_input.poseAction);
+
+	XrPath profilePath;
+	XrPath posePath[2];
+	xrStringToPath(m_instance, "/user/hand/left/input/grip/pose", &posePath[0]);
+	xrStringToPath(m_instance, "/user/hand/right/input/grip/pose", &posePath[1]);
+	xrStringToPath(m_instance, "/interaction_profiles/khr/simple_controller", &profilePath);
+
+	XrActionSuggestedBinding bindings[] = {
+		{ m_input.poseAction, posePath[0] },
+		{ m_input.poseAction, posePath[1] },
+	};
+
+	XrInteractionProfileSuggestedBinding suggestedBinds = { XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
+	suggestedBinds.interactionProfile = profilePath;
+	suggestedBinds.suggestedBindings = &bindings[0];
+	suggestedBinds.countSuggestedBindings = _countof(bindings);
+	xrSuggestInteractionProfileBindings(m_instance, &suggestedBinds);
+
+	for (int i = 0; i < 2; i++)
+	{
+		XrActionSpaceCreateInfo actionSpaceInfo = { XR_TYPE_ACTION_SPACE_CREATE_INFO };
+		actionSpaceInfo.action = m_input.poseAction;
+		actionSpaceInfo.poseInActionSpace = c_poseIdentity;
+		actionSpaceInfo.subactionPath = m_input.handSubactionPath[i];
+		xrCreateActionSpace(m_session, &actionSpaceInfo, &m_input.handSpace[i]);
+	}
+
+	XrSessionActionSetsAttachInfo attachInfo = { XR_TYPE_SESSION_ACTION_SETS_ATTACH_INFO };
+	attachInfo.countActionSets = 1;
+	attachInfo.actionSets = &m_input.actionSet;
+	xrAttachSessionActionSets(m_session, &attachInfo);
 }
 
 bool XrProgram::PollEvent()
@@ -178,7 +225,28 @@ bool XrProgram::PollEvent()
 
 void XrProgram::PollActions()
 {
-	// TODO: Impliment your poll actions logic.
+	if (m_sessionState != XR_SESSION_STATE_FOCUSED) return;
+
+	XrActiveActionSet actionSet = { }; 
+	actionSet.actionSet = m_input.actionSet;
+	actionSet.subactionPath = XR_NULL_PATH;
+
+	XrActionsSyncInfo syncInfo = { XR_TYPE_ACTIONS_SYNC_INFO };
+	syncInfo.countActiveActionSets = 1;
+	syncInfo.activeActionSets = &actionSet;
+	xrSyncActions(m_session, &syncInfo);
+
+	for (int i = 0; i < 2; i++)
+	{
+		XrActionStateGetInfo getInfo = { XR_TYPE_ACTION_STATE_GET_INFO };
+		getInfo.subactionPath = m_input.handSubactionPath[i];
+		getInfo.action = m_input.poseAction;
+
+		XrActionStatePose poseState = { XR_TYPE_ACTION_STATE_POSE };
+		xrGetActionStatePose(m_session, &getInfo, &poseState);
+		m_input.renderHand[i] = poseState.isActive;
+	}
+
 }
 
 void XrProgram::Render(DxProgram* dx)
@@ -186,7 +254,9 @@ void XrProgram::Render(DxProgram* dx)
 	XrFrameState frameState = { XR_TYPE_FRAME_STATE };
 	xrWaitFrame(m_session, nullptr, &frameState);
 	xrBeginFrame(m_session, nullptr);
-
+	
+	PollPredicted(frameState.predictedDisplayTime);
+	
 	XrCompositionLayerBaseHeader* layer = nullptr;
 	XrCompositionLayerProjection layerProjection = { XR_TYPE_COMPOSITION_LAYER_PROJECTION };
 	vector<XrCompositionLayerProjectionView> views;
@@ -278,7 +348,29 @@ bool XrProgram::RenderLayer(
 }
 
 void XrProgram::PollPredicted(XrTime predicted_time)
-{}
+{
+	if (m_sessionState != XR_SESSION_STATE_FOCUSED) return;
+
+	for (int i = 0; i < 2; i++)
+	{
+		if (!m_input.renderHand[i]) continue;
+		XrSpaceLocation spaceRelation = { XR_TYPE_SPACE_LOCATION };
+		XrResult result = xrLocateSpace(m_input.handSpace[i], m_space, predicted_time, &spaceRelation);
+		if (XR_UNQUALIFIED_SUCCESS(result) &&
+			(spaceRelation.locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) != 0 &&
+			(spaceRelation.locationFlags & XR_SPACE_LOCATION_ORIENTATION_VALID_BIT) != 0)
+		{
+			m_input.handPose[i] = spaceRelation.pose;
+		}
+	}
+}
+
+
+void XrProgram::UpdateObjectPose(Cube* cube)
+{
+	if (m_input.renderHand[1]) cube->SetPose(m_input.handPose[1]);
+	else if (m_input.renderHand[0]) cube->SetPose(m_input.handPose[0]);
+}
 
 bool XrProgram::IsRunning()
 {

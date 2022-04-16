@@ -17,6 +17,7 @@
 #include <vector>
 #include <algorithm>
 #include <wrl/client.h>
+#include <iostream>
 
 using namespace std;
 using namespace DirectX;

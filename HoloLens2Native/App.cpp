@@ -22,6 +22,8 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 	xr.CreateSpace();
 	xr.CreateSwapchain(&dx);
 
+	xr.MakeActions();
+
 	Cube cube{};
 	dx.SetCube(&cube);
 	dx.CompileShader();
@@ -30,6 +32,8 @@ int __stdcall wWinMain(HINSTANCE, HINSTANCE, LPWSTR, int) {
 	{
 		if (xr.IsRunning())
 		{
+			xr.PollActions();
+			xr.UpdateObjectPose(&cube);
 			xr.Render(&dx);
 			if (xr.NeedSleep()) this_thread::sleep_for(chrono::milliseconds(250));
 		}

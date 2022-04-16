@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DxProgram.h"
+#include "Cube.h"
 
 class XrProgram
 {
@@ -25,6 +26,7 @@ public:
 	bool IsRunning();
 	bool NeedSleep();
 	void Render(DxProgram* dx);
+	void UpdateObjectPose(Cube* cube);
 
 	// Shutdown function
 	void Terminate();

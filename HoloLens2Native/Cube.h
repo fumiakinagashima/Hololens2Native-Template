@@ -14,6 +14,7 @@ public:
 	XMFLOAT3* Position();
 
 	UINT CountIndex();
+	void SetPose(XrPosef pose);
 
 private:
 	float m_vertex[48] = {

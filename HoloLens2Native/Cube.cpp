@@ -7,7 +7,7 @@ Cube::Cube():
 {
 	m_vertexBufferData = { m_vertex };
 	m_indexBufferData = { m_index };
-	m_pose = { {0, 0, 0, 1}, { 0, 0, 2 } };
+	m_pose = { {0, 0, 0, 1}, { 0, 0, -1 } };
 }
 
 D3D11_SUBRESOURCE_DATA* Cube::VertexBufferData()
@@ -43,4 +43,9 @@ XMFLOAT4* Cube::Orientation()
 XMFLOAT3* Cube::Position()
 {
 	return (XMFLOAT3*)&m_pose.position;
+}
+
+void Cube::SetPose(XrPosef pose)
+{
+	m_pose = pose;
 }
