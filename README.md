@@ -1,4 +1,4 @@
-# HoloLens2 Native
+# HoloLens2 Native Template
 
 A template for Microsoft HoloLens2 developer who want to develop without game engine such as Unity and Unreal Engine.<br>
 Using OpenXR and DirextX11.
